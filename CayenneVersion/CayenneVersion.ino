@@ -77,9 +77,6 @@ void loop() {
 
   Cayenne.loop();
   
-//  Serial.println("--------------------------------------------------------------------start loop");
-//  Serial.println();
-
   // External LED on
   digitalWrite(12, HIGH);
  
@@ -119,10 +116,13 @@ void loop() {
     Serial.print("Vcc Voltage:   "); Serial.print(battery_V / 1000); Serial.println(" V--------------");
     Serial.println();
 
-// sleep for 3 minutes
-    ESP.deepSleep((sleepTimeMin * 3) * 1000000, WAKE_RF_DEFAULT);
+  // if 10 minutes have elasped, go to sleep for 5 minutes
+    if (lastmillis / 1000 > 36000 )
+    { 
+    Serial.println("Going to sleep----------------------");
+    ESP.deepSleep((sleepTimeMin * 5) * 1000000, WAKE_RF_DEFAULT);
     delay(100); // wait for deep sleep to happen ...
-
+    }
 
 }
 // Function to measure current
