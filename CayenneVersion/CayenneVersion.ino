@@ -113,14 +113,20 @@ void loop() {
 //  delay(1000);
   
   delay(500);
+//  Serial.println();
+//  Serial.println("--------------------------------------------------------------------End loop");
+//  Serial.println();
 
     battery_V = ESP.getVcc();
     
     Serial.print("Vcc Voltage:   "); Serial.print(battery_V / 1000); Serial.println(" V--------------");
     Serial.println();
+<<<<<<< HEAD
 // sleep for 3 minutes
     ESP.deepSleep((sleepTimeMin * 3) * 1000000, WAKE_RF_DEFAULT);
     delay(100); // wait for deep sleep to happen ...
+=======
+>>>>>>> parent of dcee907... Revert "Deep sleep testing"
 }
 // Function to measure current
 float measureCurrent() {
