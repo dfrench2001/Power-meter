@@ -118,7 +118,10 @@ void loop() {
     
     Serial.print("Vcc Voltage:   "); Serial.print(battery_V / 1000); Serial.println(" V--------------");
     Serial.println();
+
+    
 // sleep for 3 minutes
+    Serial.println("Going to sleep--------------------------");
     ESP.deepSleep((sleepTimeMin * 3) * 1000000, WAKE_RF_DEFAULT);
     delay(100); // wait for deep sleep to happen ...
 }
