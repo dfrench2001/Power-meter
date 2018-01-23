@@ -10,8 +10,7 @@
 #include <CayenneMQTTESP8266.h>
 
 //#define SERIAL_DEBUG
-//
-// This is a test comment
+
 // WiFi network info.
 char ssid[] = "ddtest";
 char wifiPassword[] = "2micamarleykato";
