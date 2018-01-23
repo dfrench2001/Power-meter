@@ -53,7 +53,9 @@ void setup()   {
   ina219.setCalibration_16V_400mA();
 
   // Init OLED Display
-  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+
+  // setup router to interfaace with Cayenne Iot website
   Cayenne.begin(username, password, clientID, ssid, wifiPassword);
 
   // Display welcome message
