@@ -115,7 +115,7 @@ void loop() {
 
     battery_V = ESP.getVcc();
     
-  // if 5 minutes have elasped, go to sleep for 5 minutes
+  // if 5 minutes have elasped, go to sleep for 30 minutes
     if (lastMillis / 1000 > sleepTimeMin * 5 )
     {
       display.clearDisplay();
@@ -123,7 +123,7 @@ void loop() {
       delay(100); 
       Serial.println("Going to sleep----------------------");
 
-      ESP.deepSleep((sleepTimeMin * 5) * 1000000, WAKE_RF_DEFAULT);
+      ESP.deepSleep((sleepTimeMin * 30) * 1000000, WAKE_RF_DEFAULT);
       delay(100); // wait for deep sleep to happen ...
     }
 
