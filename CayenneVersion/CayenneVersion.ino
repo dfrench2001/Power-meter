@@ -115,15 +115,16 @@ void loop() {
 
     battery_V = ESP.getVcc();
     
-    Serial.print("Vcc Voltage:   "); Serial.print(battery_V / 1000); Serial.println(" V--------------");
-    Serial.println();
+  // if 5 minutes have elasped, go to sleep for 5 minutes
+    if (lastMillis / 1000 > sleepTimeMin * 5 )
+    {
+      display.clearDisplay();
+      display.display();
+      delay(100); 
+      Serial.println("Going to sleep----------------------");
 
-  // if 10 minutes have elasped, go to sleep for 5 minutes
-    if (lastmillis / 1000 > 36000 )
-    { 
-    Serial.println("Going to sleep----------------------");
-    ESP.deepSleep((sleepTimeMin * 5) * 1000000, WAKE_RF_DEFAULT);
-    delay(100); // wait for deep sleep to happen ...
+      ESP.deepSleep((sleepTimeMin * 5) * 1000000, WAKE_RF_DEFAULT);
+      delay(100); // wait for deep sleep to happen ...
     }
 
 }
@@ -248,17 +249,15 @@ CAYENNE_OUT(2)
 {
    Cayenne.virtualWrite(2, current_mA);   
 }
-CAYENNE_OUT(3)
-{
-   Cayenne.virtualWrite(3,WiFi.localIP());
-   Serial.println(WiFi.localIP());
-}  
+//CAYENNE_OUT(3)
+//{
+//   Cayenne.virtualWrite(3,WiFi.localIP());
+//   Serial.println(WiFi.localIP());
+//}  
 CAYENNE_OUT (4)
 {
    battery_V = (ESP.getVcc());
    Cayenne.virtualWrite(4, battery_V);
-
-   Serial.println(ESP.getVcc());
 }
 CAYENNE_OUT(5)
 {
