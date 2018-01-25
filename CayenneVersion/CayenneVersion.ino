@@ -10,7 +10,7 @@
 #include <CayenneMQTTESP8266.h>
 
 //#define SERIAL_DEBUG
-
+#define DEBUG
 // WiFi network info.
 char ssid[] = "ddtest";
 char wifiPassword[] = "2micamarleykato";
@@ -114,7 +114,7 @@ void loop() {
     delay(500);
 
     battery_V = ESP.getVcc();
-    
+#ifndef DEBUG    
   // if 5 minutes have elasped, go to sleep for 30 minutes
     if (lastMillis / 1000 > sleepTimeMin * 5 )
     {
@@ -126,7 +126,7 @@ void loop() {
       ESP.deepSleep((sleepTimeMin * 30) * 1000000, WAKE_RF_DEFAULT);
       delay(100); // wait for deep sleep to happen ...
     }
-
+#endif
 }
 // Function to measure current
 float measureCurrent() {
