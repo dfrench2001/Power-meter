@@ -8,15 +8,25 @@
 #define CAYENNE_DEBUG
 #define CAYENNE_PRINT Serial
 #include <CayenneMQTTESP8266.h>
+#include <ESPHelper.h>
 
 //#define SERIAL_DEBUG
 #define DEBUG
+
 // WiFi network info.
-char ssid[] = "ddtest";
+char ssid[] = "2POTATO";
 char wifiPassword[] = "2micamarleykato";
 
 ADC_MODE(ADC_VCC);
 
+netInfo homeNet = {	.mqttHost = "",			//can be blank if not using MQTT
+				.mqttUser = "", 	//can be blank
+   			.mqttPass = "", 	//can be blank
+				.mqttPort = 1883,		//default port for MQTT is 1883 - only chance if needed.
+				.ssid = "2POTATO",
+				.pass = "2micamarleykato"};
+
+ESPHelper myESP(&homeNet);
 // INA sensor
 Adafruit_INA219 ina219;
 
@@ -44,9 +54,12 @@ char clientID[] = "7699bbf0-fb0e-11e7-ab60-0b4a23fb76f3";
 
 unsigned long lastMillis = 0;
 
-void setup()   {     
-             
+void setup()   {
+
   Serial.begin(115200);
+
+  //  Setup OVER THE AIR (wifi) sketch updates
+  OTA_Setup();
 
   // Init INA219
   ina219.begin();
@@ -73,25 +86,24 @@ void setup()   {
 
 
 }
-
-
 void loop() {
 
-  Cayenne.loop();
-  
+  Cayenne.loop(); // check devices that send data to Cheyenne
+  myESP.loop();  //run the loop() method as often as possible - this keeps the network services running
+
   // External LED on
   digitalWrite(12, HIGH);
- 
+
   // Measure
 //  current_mA = measureCurrent();
 //  power_mW = measurePower();
-  
+
   // Display data
 //  displayData(current_mA, power_mW);
 //  displayData(power_mW,current_mA);
 //  delay(500);
 
-  
+
   // LED 0ff
 //  digitalWrite(12, LOW);
 
@@ -99,7 +111,7 @@ void loop() {
   // Measure
   current_mA = measureCurrent();
   power_mW = measurePower();
-  
+
   // Display data
   displayData( current_mA, power_mW );
 
@@ -110,23 +122,24 @@ void loop() {
 //  display.println("Ready!");
 //  display.display();
 //  delay(1000);
-  
+
     delay(500);
 
     battery_V = ESP.getVcc();
-#ifndef DEBUG    
+#ifndef DEBUG
   // if 5 minutes have elasped, go to sleep for 30 minutes
     if (lastMillis / 1000 > sleepTimeMin * 5 )
     {
       display.clearDisplay();
       display.display();
-      delay(100); 
+      delay(100);
       Serial.println("Going to sleep----------------------");
 
       ESP.deepSleep((sleepTimeMin * 30) * 1000000, WAKE_RF_DEFAULT);
       delay(100); // wait for deep sleep to happen ...
     }
 #endif
+  yield();
 }
 // Function to measure current
 float measureCurrent() {
@@ -148,14 +161,14 @@ float measureCurrent() {
   Serial.print("Current:       "); Serial.print(current_mA); Serial.println(" mA");
   Serial.println("");
   #endif
-  
+
   // If negative, set to zero
 //  if (current_mA < 0) {
-//    current_mA = 0.0; 
+//    current_mA = 0.0;
 //  }
- 
+
   return current_mA;
-  
+
 }
 
 // Function to measure power
@@ -179,14 +192,14 @@ float measurePower() {
   Serial.print("Power:         "); Serial.print(current_mA * loadvoltage); Serial.println(" mW");
   Serial.println("");
   #endif
-  
+
   // If negative, set to zero
 //  if (current_mA < 0) {
-//    current_mA = 0.0; 
+//    current_mA = 0.0;
 //  }
- 
+
   return current_mA * loadvoltage;
-  
+
 }
 
 // Display measurement data
@@ -207,7 +220,7 @@ void displayData(float current, float power) {
   display.display();
 
   delay(1000);
-  
+
   // Current
   display.clearDisplay();
   display.setCursor(0,0);
@@ -217,7 +230,7 @@ void displayData(float current, float power) {
 
   // Displays
   display.display();
-  
+
 }
 // Default function for sending sensor data at intervals to Cayenne.
 // You can also use functions for specific channels, e.g CAYENNE_OUT(1) for sending channel 1 data.
@@ -247,13 +260,13 @@ CAYENNE_IN(1)
 
 CAYENNE_OUT(2)
 {
-   Cayenne.virtualWrite(2, current_mA);   
+   Cayenne.virtualWrite(2, current_mA);
 }
 //CAYENNE_OUT(3)
 //{
 //   Cayenne.virtualWrite(3,WiFi.localIP());
 //   Serial.println(WiFi.localIP());
-//}  
+//}
 CAYENNE_OUT (4)
 {
    battery_V = (ESP.getVcc());
@@ -262,7 +275,19 @@ CAYENNE_OUT (4)
 CAYENNE_OUT(5)
 {
    Cayenne.virtualWrite(5, measurePower());
-  
-}  
 
+}
 
+void OTA_Setup()
+{
+// Setup Over the Air uptades
+  myESP.OTA_enable();
+	myESP.OTA_setPassword("jasons esp");
+	myESP.OTA_setHostnameWithVersion("CayenneVersion .9");
+
+	myESP.begin();
+
+}
+void callback(char* topic, uint8_t* payload, unsigned int length) {
+	//put mqtt callback code here
+}
