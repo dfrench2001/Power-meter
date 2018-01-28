@@ -5,13 +5,13 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Adafruit_INA219.h>
-#define CAYENNE_DEBUG
-#define CAYENNE_PRINT Serial
+//#define CAYENNE_DEBUG
+//#define CAYENNE_PRINT Serial
 #include <CayenneMQTTESP8266.h>
 #include <ESPHelper.h>
 
 //#define SERIAL_DEBUG
-#define DEBUG
+//#define DEBUG
 
 // WiFi network info.
 char ssid[] = "2POTATO";
@@ -82,8 +82,11 @@ void setup()   {
 
   // LED
   pinMode(12, OUTPUT);
-//  pinMode(LED_BUILTIN, OUTPUT);     // Initialize the LED_BUILTIN pin as an output
-
+  pinMode(LED_BUILTIN, OUTPUT);     // Initialize the LED_BUILTIN pin as an output
+ 
+ // Turn off BUILT_IN LED. Turning it on from Cayenne, enabbles 5 on 30 minute off power saving mode
+  digitalWrite(LED_BUILTIN,HIGH);   // Turn off BUILT_IN LED; 
+ 
 
 }
 void loop() {
@@ -126,19 +129,22 @@ void loop() {
     delay(500);
 
     battery_V = ESP.getVcc();
-#ifndef DEBUG
+
   // if 5 minutes have elasped, go to sleep for 30 minutes
     if (lastMillis / 1000 > sleepTimeMin * 5 )
     {
-      display.clearDisplay();
-      display.display();
-      delay(100);
-      Serial.println("Going to sleep----------------------");
-
-      ESP.deepSleep((sleepTimeMin * 30) * 1000000, WAKE_RF_DEFAULT);
-      delay(100); // wait for deep sleep to happen ...
+      if (digitalRead(LED_BUILTIN) == LOW)
+      { 
+        display.clearDisplay();
+        display.display();
+        delay(100);
+        Serial.println("Going to sleep----------------------");
+  
+        ESP.deepSleep((sleepTimeMin * 30) * 1000000, WAKE_RF_DEFAULT);
+        delay(100); // wait for deep sleep to happen ...
+      }
     }
-#endif
+
   yield();
 }
 // Function to measure current
