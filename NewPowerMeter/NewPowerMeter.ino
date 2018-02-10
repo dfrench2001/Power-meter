@@ -17,18 +17,22 @@
 
 #define AIO_USERNAME    "esp8266forDale"
 #define AIO_KEY         "409319d05faf425a9c86de804e423a4f"
-#define AIO_FEED        "power"
-#define AIO_FEED2       "current"
+#define AIO_FEED_power                "power"
+#define AIO_FEED_current              "current"
+#define AIO_FEED_battery_level        "Battery level"
+#define AIO_FEED_counter              "counter"
 
-AdafruitIO_WiFi io(AIO_USERNAME, AIO_KEY, SSID, NETWORK_PASS);
 
-// set up the feeds to AdafruitIO
-AdafruitIO_Feed *power_feed = io.feed("power");
-AdafruitIO_Feed *current_feed = io.feed("current");
-AdafruitIO_Feed *Battery_level_feed = io.feed("Battery level");
-AdafruitIO_Feed *counter_feed = io.feed("counter");
-AdafruitIO_Feed *LED_feed = io.feed("LED");
+//AdafruitIO_WiFi io(AIO_USERNAME, AIO_KEY, SSID, NETWORK_PASS);
 
+//WiFi connection;
+/* set up the feeds to AdafruitIO
+ * AdafruitIO_Feed *power_feed = io.feed("power");
+ * AdafruitIO_Feed *current_feed = io.feed("current");
+ * AdafruitIO_Feed *Battery_level_feed = io.feed("Battery level");
+ * AdafruitIO_Feed *counter_feed = io.feed("counter");
+ * AdafruitIO_Feed *LED_feed = io.feed("LED");
+ */
 ADC_MODE(ADC_VCC);
 
 netInfo homeNet = {	.mqttHost = "io.adafruit.com",	 //can be blank if not using MQTT
@@ -39,6 +43,8 @@ netInfo homeNet = {	.mqttHost = "io.adafruit.com",	 //can be blank if not using 
 		            		.pass = "2micamarleykato"};
 
 ESPHelper myESP(&homeNet);
+
+
 
 // INA sensor
 Adafruit_INA219 ina219;
@@ -56,37 +62,33 @@ float power_mW;
 float battery_V;
 
 // Time to sleep (in seconds):
-const int sleepTimeS = 10;
-const int sleepTimeMin = 60;
-const int sleepTimeHour = sleepTimeMin * 60 ;
+unsigned long sleepTimeS = 1000;
+unsigned long sleepTimeMin = 60 * 1000;  // 1000 milliseconds * 60 secondes = 1 minute
+unsigned long sleepTimeHour = sleepTimeMin * 60 ;
 
-Metro feedMetro = Metro(sleepTimeMin * 10);  // 10 min timer to update AdafruitIO feeds
+Metro feedMetro = Metro(sleepTimeMin);  // 10 min timer to update AdafruitIO feeds
 Metro sleepMetro = Metro(sleepTimeMin * 5); // 5 min timer to go in sleep mode
 
 unsigned long lastMillis = 0;
 
+//------------------------------------------------ Setup ------------------------------------------------
 void setup()   {
 
   Serial.begin(115200);
 
   //  Setup OVER THE AIR (wifi) sketch updates
   OTA_Setup();
+  myESP.setMQTTCallback(callback);
+  myESP.addSubscription(AIO_USERNAME"/feeds/"AIO_FEED_power);
+  myESP.addSubscription(AIO_USERNAME"/feeds/"AIO_FEED_current);
+  myESP.addSubscription(AIO_USERNAME"/feeds/"AIO_FEED_battery_level);
+  myESP.addSubscription(AIO_USERNAME"/feeds/"AIO_FEED_counter);
 
   // connect to io.adafruit.com
-  io.connect();
-
-  // wait for a connection
-  while(io.status() < AIO_CONNECTED) {
-    Serial.print(".");
-    delay(500);
-  }
-
-  // we are connected
-  Serial.println();
-  Serial.println(io.statusText());
+//  io.connect();
 
   //setup ESPHelper
-  myESP.begin();
+//  myESP.begin();
 
   // Init INA219
   ina219.begin();
@@ -113,10 +115,14 @@ void setup()   {
  
 
 }
+//------------------------------------------loop------------------------------------------------------ 
+
 void loop() {
 
+  Serial.println("calling myESP.loop ");
    myESP.loop();  //run the loop() method as often as possible - this keeps the network services running
-   io.run();
+//   io.run();
+    Serial.print("current status =" ); Serial.println(myESP.loop());
 
    lastMillis = millis() /1000;
      
@@ -124,7 +130,7 @@ void loop() {
   digitalWrite(12, HIGH);
 
   // setup handler for LED actions
-  LED_feed->onMessage(handleLED);
+//  LED_feed->onMessage(handleLED);
 
   // Measure
   current_mA = measureCurrent();
@@ -157,20 +163,65 @@ void loop() {
         delay(100); // wait for deep sleep to happen ...
     }
 
-   battery_V = ESP.getVcc();
+   battery_V = (ESP.getVcc() /1000);
 
   // save to the feed on Adafruit IO
   if(feedMetro.check() == 1)
   {
-    current_feed->save(current_mA);
-    power_feed->save(power_mW);
-    Battery_level_feed->save(battery_V / 1000);    
-    counter_feed->save(lastMillis );
+    myESP.begin();
+     // wait for a connection
+    Serial.println("waiting for connection");
+    while(myESP.loop() != FULL_CONNECTION ){
+    Serial.print(".");
+    delay(500);
+    }
+
+     // we are connected
+    Serial.print("current status =" ); Serial.println(myESP.loop());
+
+   //generate a string from our counter variable
+
+    char pubString[10];
+    itoa(lastMillis, pubString, 10);
+    myESP.publish(AIO_USERNAME"/feeds/"AIO_FEED_counter, pubString);
+    memset(pubString, 0x20, sizeof(pubString));
+    delay(250);
+ 
+    //publish the data to MQTT
+    ftoa( pubString,current_mA, 10);
+    myESP.publish(AIO_USERNAME"/feeds/"AIO_FEED_current, pubString);
+    memset(pubString, 0x20, sizeof(pubString));
+    delay(250);
+
+    ftoa(pubString,power_mW, 10);
+    myESP.publish(AIO_USERNAME"/feeds/"AIO_FEED_power, pubString);
+    memset(pubString, 0x20, sizeof(pubString));
+    delay(250);
+
+    ftoa(pubString, battery_V, 10);
+    myESP.publish(AIO_USERNAME"/feeds/"AIO_FEED_battery_level, pubString);
+    memset(pubString, 0x20, sizeof(pubString));
+    delay(250);
+
+//    current_feed->save(current_mA);
+//    power_feed->save(power_mW);
+//    Battery_level_feed->save(battery_V / 1000);    
+//    counter_feed->save(lastMillis );
+
+
+    Serial.print("current status =" ); Serial.println(myESP.loop());
+
+    WiFi.disconnect();
+
+    Serial.print("current status =" ); Serial.println(myESP.loop());
   }
 
-
-  yield();
+   yield();
 }
+
+//------------------------------------------ FUNCTIONS ---------------------------------------------------
+
+
 // Function to measure current
 float measureCurrent() {
 
@@ -270,11 +321,15 @@ void OTA_Setup()
 	myESP.OTA_setPassword("jasons esp");
 	myESP.OTA_setHostnameWithVersion("CayenneVersion .9");
 
-	myESP.begin();
-
+//  Serial.println("begining myESP----------");
+//	myESP.begin();
+//  Serial.println("begin complete-----------");
+  delay(500);
 }
 void callback(char* topic, uint8_t* payload, unsigned int length) {
 	//put mqtt callback code here
+
+  // Serial.print(topic, payload,length);
 }
 
 void handleLED(AdafruitIO_Data *data)
@@ -290,3 +345,56 @@ void handleLED(AdafruitIO_Data *data)
     digitalWrite(LED_BUILTIN, HIGH);
   }
 }
+
+
+char *ftoa(char *buffer, double d, int precision) {
+
+  long wholePart = (long) d;
+
+  // Deposit the whole part of the number.
+
+  itoa(wholePart,buffer,10);
+
+  // Now work on the faction if we need one.
+
+  if (precision > 0) {
+
+    // We do, so locate the end of the string and insert
+    // a decimal point.
+
+    char *endOfString = buffer;
+    while (*endOfString != '\0') endOfString++;
+    *endOfString++ = '.';
+
+    // Now work on the fraction, be sure to turn any negative
+    // values positive.
+
+    if (d < 0) {
+      d *= -1;
+      wholePart *= -1;
+    }
+    
+    double fraction = d - wholePart;
+    while (precision > 0) {
+
+      // Multipleby ten and pull out the digit.
+
+      fraction *= 10;
+      wholePart = (long) fraction;
+      *endOfString++ = '0' + wholePart;
+
+      // Update the fraction and move on to the
+      // next digit.
+
+      fraction -= wholePart;
+      precision--;
+    }
+
+    // Terminate the string.
+
+    *endOfString = '\0';
+  }
+
+   return buffer;
+}
+
