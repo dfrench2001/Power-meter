@@ -75,7 +75,6 @@ unsigned long lastMillis = 0;
 void setup()   {
 
   Serial.begin(115200);
-
   //  Setup OVER THE AIR (wifi) sketch updates
   OTA_Setup();
   myESP.setMQTTCallback(callback);
@@ -109,13 +108,12 @@ void setup()   {
   // LED
   pinMode(12, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);     // Initialize the LED_BUILTIN pin as an output
- 
+
  // Turn off BUILT_IN LED. Turning it on from AdafruitIO, enabbles 5 on 30 minute off power saving mode
-  digitalWrite(LED_BUILTIN,HIGH);   // Turn off BUILT_IN LED; 
- 
+  digitalWrite(LED_BUILTIN,HIGH);   // Turn off BUILT_IN LED;
 
 }
-//------------------------------------------loop------------------------------------------------------ 
+//------------------------------------------loop------------------------------------------------------
 
 void loop() {
 
@@ -125,7 +123,7 @@ void loop() {
     Serial.print("current status =" ); Serial.println(myESP.loop());
 
    lastMillis = millis() /1000;
-     
+
   // External LED off
   digitalWrite(12, HIGH);
 
@@ -139,7 +137,6 @@ void loop() {
   // Display data
   displayData( current_mA, power_mW );
 
-      
 //  display.clearDisplay();
 //  display.setTextSize(2);
 //  display.setTextColor(WHITE);
@@ -158,7 +155,7 @@ void loop() {
         display.display();
         delay(100);
         Serial.println("Going to sleep----------------------");
-  
+
         ESP.deepSleep((sleepTimeMin * 30) * 1000000, WAKE_RF_DEFAULT);
         delay(100); // wait for deep sleep to happen ...
     }
@@ -168,7 +165,7 @@ void loop() {
   // save to the feed on Adafruit IO
   if(feedMetro.check() == 1)
   {
-    myESP.begin();
+    myESP.updateNetwork();
      // wait for a connection
     Serial.println("waiting for connection");
     while(myESP.loop() != FULL_CONNECTION ){
@@ -186,7 +183,7 @@ void loop() {
     myESP.publish(AIO_USERNAME"/feeds/"AIO_FEED_counter, pubString);
     memset(pubString, 0x20, sizeof(pubString));
     delay(250);
- 
+
     //publish the data to MQTT
     ftoa( pubString,current_mA, 10);
     myESP.publish(AIO_USERNAME"/feeds/"AIO_FEED_current, pubString);
@@ -205,7 +202,7 @@ void loop() {
 
 //    current_feed->save(current_mA);
 //    power_feed->save(power_mW);
-//    Battery_level_feed->save(battery_V / 1000);    
+//    Battery_level_feed->save(battery_V / 1000);
 //    counter_feed->save(lastMillis );
 
 
@@ -235,7 +232,7 @@ float measureCurrent() {
   current_mA = ina219.getCurrent_mA();
   loadvoltage = busvoltage + (shuntvoltage / 1000);
 
-#ifdef DEBUG
+#ifdef SERIAL_DEBUG
   Serial.print("Bus Voltage:   "); Serial.print(busvoltage); Serial.println(" V");
   Serial.print("Shunt Voltage: "); Serial.print(shuntvoltage); Serial.println(" mV");
   Serial.print("Load Voltage:  "); Serial.print(loadvoltage); Serial.println(" V");
@@ -265,7 +262,7 @@ float measurePower() {
   current_mA = ina219.getCurrent_mA();
   loadvoltage = busvoltage + (shuntvoltage / 1000);
 
-#ifdef DEBUG
+#ifdef SERIAL_DEBUG
   Serial.print("Bus Voltage:   "); Serial.print(busvoltage); Serial.println(" V");
   Serial.print("Shunt Voltage: "); Serial.print(shuntvoltage); Serial.println(" mV");
   Serial.print("Load Voltage:  "); Serial.print(loadvoltage); Serial.println(" V");
@@ -321,9 +318,7 @@ void OTA_Setup()
 	myESP.OTA_setPassword("jasons esp");
 	myESP.OTA_setHostnameWithVersion("CayenneVersion .9");
 
-//  Serial.println("begining myESP----------");
-//	myESP.begin();
-//  Serial.println("begin complete-----------");
+	myESP.begin();
   delay(500);
 }
 void callback(char* topic, uint8_t* payload, unsigned int length) {
@@ -334,7 +329,7 @@ void callback(char* topic, uint8_t* payload, unsigned int length) {
 
 void handleLED(AdafruitIO_Data *data)
 {
-  
+
   if(data->toString() == "ON")
   {
     Serial.println( " ON SENT");
@@ -345,7 +340,6 @@ void handleLED(AdafruitIO_Data *data)
     digitalWrite(LED_BUILTIN, HIGH);
   }
 }
-
 
 char *ftoa(char *buffer, double d, int precision) {
 
@@ -373,7 +367,7 @@ char *ftoa(char *buffer, double d, int precision) {
       d *= -1;
       wholePart *= -1;
     }
-    
+
     double fraction = d - wholePart;
     while (precision > 0) {
 
@@ -397,4 +391,3 @@ char *ftoa(char *buffer, double d, int precision) {
 
    return buffer;
 }
-
