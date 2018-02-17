@@ -63,18 +63,21 @@ float battery_V;
 
 // Time to sleep (in seconds):
 unsigned long sleepTimeS = 1000;
-unsigned long sleepTimeMin = 60 * 1000;  // 1000 milliseconds * 60 secondes = 1 minute
+unsigned long sleepTimeMin = 15 * 1000;  // 1000 milliseconds * 60 secondes = 1 minute
 unsigned long sleepTimeHour = sleepTimeMin * 60 ;
 
 Metro feedMetro = Metro(sleepTimeMin);  // 10 min timer to update AdafruitIO feeds
 Metro sleepMetro = Metro(sleepTimeMin * 5); // 5 min timer to go in sleep mode
 
 unsigned long lastMillis = 0;
+uint8_t firsttime = 1;
 
 //------------------------------------------------ Setup ------------------------------------------------
 void setup()   {
 
   Serial.begin(115200);
+  Serial.setDebugOutput(true);
+
   //  Setup OVER THE AIR (wifi) sketch updates
   OTA_Setup();
   myESP.setMQTTCallback(callback);
@@ -82,6 +85,7 @@ void setup()   {
   myESP.addSubscription(AIO_USERNAME"/feeds/"AIO_FEED_current);
   myESP.addSubscription(AIO_USERNAME"/feeds/"AIO_FEED_battery_level);
   myESP.addSubscription(AIO_USERNAME"/feeds/"AIO_FEED_counter);
+
 
   // connect to io.adafruit.com
 //  io.connect();
@@ -116,11 +120,15 @@ void setup()   {
 //------------------------------------------loop------------------------------------------------------
 
 void loop() {
+Serial.println("looping-----------------");
+Serial.println(firsttime);
 
-  Serial.println("calling myESP.loop ");
-   myESP.loop();  //run the loop() method as often as possible - this keeps the network services running
-//   io.run();
-    Serial.print("current status =" ); Serial.println(myESP.loop());
+  if(firsttime == 0)
+  {
+    Serial.println("calling myESP.loop ");
+//    myESP.loop();  //run the loop() method as often as possible - this keeps the network services running
+    Serial.print("current loop status =" ); Serial.println(myESP.loop());
+  }
 
    lastMillis = millis() /1000;
 
@@ -145,7 +153,7 @@ void loop() {
 //  display.display();
 //  delay(1000);
 
-    delay(3000);
+    delay(2000);
 
   // if 5 minutes have elasped, go to sleep for 30 minutes
     if (( sleepMetro.check() == 1 ) && (digitalRead(LED_BUILTIN) == LOW))
@@ -165,13 +173,21 @@ void loop() {
   // save to the feed on Adafruit IO
   if(feedMetro.check() == 1)
   {
-    myESP.updateNetwork();
-     // wait for a connection
-    Serial.println("waiting for connection");
-    while(myESP.loop() != FULL_CONNECTION ){
-    Serial.print(".");
-    delay(500);
+    if (firsttime == 1 )
+    { Serial.println("calling myESP begin");
+			myESP.begin();
     }
+		else
+		{ Serial.println("calling Wifi.begin"); 
+			WiFi.begin(homeNet.ssid, homeNet.pass); // need to check return values
+		}
+     // wait for a connection
+    Serial.println("waiting for my connection");
+    while(WiFi.status() != WL_CONNECTED ){
+    Serial.print(".");Serial.println(WiFi.status());
+    WiFi.printDiag(Serial);
+    delay(2000);
+  }
 
      // we are connected
     Serial.print("current status =" ); Serial.println(myESP.loop());
@@ -183,22 +199,26 @@ void loop() {
     myESP.publish(AIO_USERNAME"/feeds/"AIO_FEED_counter, pubString);
     memset(pubString, 0x20, sizeof(pubString));
     delay(250);
+Serial.print(AIO_USERNAME"/feeds/"AIO_FEED_counter" ");Serial.println(pubString);
 
     //publish the data to MQTT
     ftoa( pubString,current_mA, 10);
     myESP.publish(AIO_USERNAME"/feeds/"AIO_FEED_current, pubString);
     memset(pubString, 0x20, sizeof(pubString));
     delay(250);
+Serial.print(AIO_USERNAME"/feeds/"AIO_FEED_current" "); Serial.println( pubString);
 
     ftoa(pubString,power_mW, 10);
     myESP.publish(AIO_USERNAME"/feeds/"AIO_FEED_power, pubString);
     memset(pubString, 0x20, sizeof(pubString));
     delay(250);
+Serial.print(AIO_USERNAME"/feeds/"AIO_FEED_power" "); Serial.println( pubString);
 
     ftoa(pubString, battery_V, 10);
     myESP.publish(AIO_USERNAME"/feeds/"AIO_FEED_battery_level, pubString);
     memset(pubString, 0x20, sizeof(pubString));
     delay(250);
+Serial.print(AIO_USERNAME"/feeds/"AIO_FEED_battery_level" "); Serial.println( pubString);
 
 //    current_feed->save(current_mA);
 //    power_feed->save(power_mW);
@@ -206,11 +226,18 @@ void loop() {
 //    counter_feed->save(lastMillis );
 
 
-    Serial.print("current status =" ); Serial.println(myESP.loop());
+    Serial.print("current status before END =" ); Serial.println(myESP.loop());
+    if (firsttime == 1)
+    {
+      firsttime = 0;
+      myESP.end();
+    }
+    else
+    {
+      WiFi.disconnect();
+    }
 
-    WiFi.disconnect();
-
-    Serial.print("current status =" ); Serial.println(myESP.loop());
+    Serial.print("current status after END =" ); Serial.println(myESP.loop());
   }
 
    yield();
@@ -318,7 +345,7 @@ void OTA_Setup()
 	myESP.OTA_setPassword("jasons esp");
 	myESP.OTA_setHostnameWithVersion("CayenneVersion .9");
 
-	myESP.begin();
+//	myESP.begin();
   delay(500);
 }
 void callback(char* topic, uint8_t* payload, unsigned int length) {

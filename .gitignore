@@ -85,3 +85,6 @@ CayenneVersion.ino
 NewOTA/NewOTA.ino
 NewOTA2/NewOTA2.ino
 hardware/espressif/esp32/
+ESP32_Data_Logging_Webserver/README.md
+ESP32_Data_Logging_Webserver/credentials.h
+ESP32_Data_Logging_Webserver/ESP32_Data_Logging_Webserver.ino
